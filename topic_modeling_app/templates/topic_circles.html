@@ -1,0 +1,85 @@
+<!-- topic_circles.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Topic Circles</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+        .circle {
+            fill: lightblue;
+            stroke: #fff;
+            stroke-width: 2px;
+            cursor: pointer;
+        }
+
+        .circle:hover {
+            fill: steelblue;
+        }
+
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            border-radius: 5px;
+            pointer-events: none;
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+    <div style="width: 80%; margin: auto;">
+        <svg id="circleContainer"></svg>
+        <div class="tooltip" id="tooltip"></div>
+    </div>
+
+    <script>
+        // Get data from Django view
+        const topics = {{ topics|safe }};
+
+        // Create SVG container
+        const svg = d3.select("#circleContainer");
+
+        // Select the tooltip element
+        const tooltip = d3.select("#tooltip");
+
+        // Create circles with text and tooltip
+        const circles = svg.selectAll("circle")
+            .data(topics)
+            .enter().append("circle")
+            .attr("class", "circle")
+            .attr("cx", (d, i) => i * 100 + 80)
+            .attr("cy", 80)
+            .attr("r", 30)
+            .on("mouseover", (event, d) => {
+                tooltip.style("opacity", 1)
+                    .html(`<strong>${d.name}</strong><br>${d.details}`)
+                    .style("left", `${event.pageX + 10}px`)
+                    .style("top", `${event.pageY - 10}px`);
+            })
+            .on("mouseout", () => {
+                tooltip.style("opacity", 0);
+            })
+            .on("dblclick", (event, d) => {
+                // Handle double-click action
+                console.log(`Double-clicked on ${d.name}. Details: ${d.details}`);
+            });
+
+        // Create text labels for circles
+        svg.selectAll("text")
+            .data(topics)
+            .enter().append("text")
+            .attr("x", (d, i) => i * 100 + 80)
+            .attr("y", 80)
+            .attr("dy", 5)
+            .attr("text-anchor", "middle")
+            .style("fill", "#fff")
+            .style("pointer-events", "none")
+            .text(d => d.name);
+    </script>
+</body>
+</html>

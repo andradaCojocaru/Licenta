@@ -1,0 +1,13 @@
+/topic_modeling_app/static/admin/js/vendor/jquery/jquery.js filter=lfs diff=lfs merge=lfs -text
+/topic_modeling_app/static/admin/js/vendor/select2/select2.full.js filter=lfs diff=lfs merge=lfs -text
+/topic_modeling_app/static/admin/js/vendor/xregexp/xregexp.js filter=lfs diff=lfs merge=lfs -text
+/topic_modeling_app/static/css/bootstrap.css filter=lfs diff=lfs merge=lfs -text
+/topic_modeling_app/static/img/abbout.jpg filter=lfs diff=lfs merge=lfs -text
+/topic_modeling_app/static/img/about.jpg filter=lfs diff=lfs merge=lfs -text
+/topic_modeling_app/static/webfonts/fa-brands-400.eot filter=lfs diff=lfs merge=lfs -text
+/topic_modeling_app/static/webfonts/fa-brands-400.svg filter=lfs diff=lfs merge=lfs -text
+/topic_modeling_app/static/webfonts/fa-brands-400.ttf filter=lfs diff=lfs merge=lfs -text
+/topic_modeling_app/static/webfonts/fa-regular-400.svg filter=lfs diff=lfs merge=lfs -text
+/topic_modeling_app/static/webfonts/fa-solid-900.eot filter=lfs diff=lfs merge=lfs -text
+/topic_modeling_app/static/webfonts/fa-solid-900.svg filter=lfs diff=lfs merge=lfs -text
+/topic_modeling_app/static/webfonts/fa-solid-900.ttf filter=lfs diff=lfs merge=lfs -text

@@ -1,0 +1,6 @@
+<!-- select_options.html -->
+<form method="post" action="{% url 'select_options' %}">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Submit</button>
+</form>
