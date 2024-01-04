@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 import pandas as pd
-from .forms import UserSelectionForm
+from .forms import UserSelectionForm, ModelChoiceForm, LdaModelForm
 from .models import PertinentWords
 from gensim import corpora, models
 from gensim.utils import simple_preprocess
@@ -78,3 +78,42 @@ def lda_visualization(request):
     vis_html = pyLDAvis.prepared_data_to_html(vis_data)
 
     return render(request, 'lda_visualization.html', {'vis_html': vis_html})
+
+def choose_model(request):
+    if request.method == 'POST':
+        form = ModelChoiceForm(request.POST)
+        if form.is_valid():
+            selected_model = form.cleaned_data['model_choice']
+            return redirect(f'{selected_model}/')
+    else:
+        form = ModelChoiceForm()
+
+    return render(request, 'select_options.html', {'form': form})
+
+def model_detail(request, selected_model):
+    # Implement logic to display details for the selected model
+    if request.method == 'POST':
+        form = LdaModelForm(request.POST)
+        if form.is_valid():
+            selected_model = form.cleaned_data['lda_model']
+            return redirect(f'{selected_model}/')
+    else:
+        form = LdaModelForm()
+    return render(request, 'models_detail.html', {'form': form})
+
+def selected_parameters(request):
+    # Get the selected parameters from the submitted form data
+    selected_parameters = {
+        'num_topics': request.POST.get('num_topics'),
+        'chunksize': request.POST.get('chunksize'),
+        'decay': request.POST.get('decay'),
+        'distributed': request.POST.get('distributed'),
+        'onepass': request.POST.get('onepass'),
+        'power_iters': request.POST.get('power_iters'),
+        'extra_samples': request.POST.get('extra_samples'),
+        'dtype': request.POST.get('dtype'),
+        'random_seed': request.POST.get('random_seed'),
+    }
+
+    # Render the template with the selected parameters
+    return render(request, 'selected_parameters_model.html', {'selected_parameters': selected_parameters})

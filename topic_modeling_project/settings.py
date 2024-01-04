@@ -93,6 +93,16 @@ DATABASES = {
     }
 }
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'djongo',
+#         'NAME': 'your_db_name',
+#         'CLIENT': {
+#                 'host': 'mongodb+srv://andradacojocaru:andrada@cluster0.rpknlzf.mongodb.net/'
+#             }  
+#     }
+# }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators

@@ -1,0 +1,16 @@
+<!-- lda_app/templates/lda_app/selected_parameters.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Selected Parameters</title>
+</head>
+<body>
+    <h1>Selected Parameters</h1>
+    
+    <ul>
+        {% for key, value in selected_parameters.items %}
+            <li><strong>{{ key }}:</strong> {{ value }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

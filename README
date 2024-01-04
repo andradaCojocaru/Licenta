@@ -1,0 +1,4 @@
+rulare:
+python manage.py runserver
+
+https://www.machinelearningplus.com/nlp/gensim-tutorial/
