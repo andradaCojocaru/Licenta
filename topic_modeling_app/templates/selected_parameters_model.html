@@ -11,6 +11,10 @@
         {% for key, value in selected_parameters.items %}
             <li><strong>{{ key }}:</strong> {{ value }}</li>
         {% endfor %}
+
+        <!-- Add the button for "Add Corpus" -->
+        <a href="{% url 'add_corpus' %}"><button>Add Corpus</button></a>
+
     </ul>
 </body>
 </html>

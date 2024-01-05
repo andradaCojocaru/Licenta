@@ -1,7 +1,7 @@
 <!-- model_detail.html -->
 <h1>Details for {{ selected_model }}</h1>
 <!-- Add logic to display details based on the selected_model -->
-<form method="post" action="{% url 'selected_parameters' %}">
+<form method="post" action="{% url 'selected_parameters' selected_model=selected_model %}">
     {% csrf_token %}
     {{ form }}
     <button type="submit">Submit</button>

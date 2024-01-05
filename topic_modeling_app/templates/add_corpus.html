@@ -1,0 +1,28 @@
+<!-- lda_app/templates/lda_app/add_corpus.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Corpus</title>
+</head>
+<body>
+    <h1>Add Corpus</h1>
+    <!-- Your form for selecting the corpus and preprocessing options goes here -->
+    <form method="post" action="">
+        {% csrf_token %}
+
+        <label for="corpus">Select Corpus:</label><br>
+        <input type="radio" id="corpus1" name="corpus" value="corpus1">
+        <label for="corpus1">20 News</label><br>
+
+        <input type="radio" id="corpus2" name="corpus" value="corpus2">
+        <label for="corpus2">Corpus 2</label><br>
+
+        <input type="radio" id="corpus3" name="corpus" value="corpus3">
+        <label for="corpus3">Corpus 3</label><br>
+
+        <!-- Add other form elements for preprocessing options if needed -->
+
+        <button type="submit">Submit</button>
+    </form>
+</body>
+</html>
