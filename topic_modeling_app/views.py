@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 import pandas as pd
-from .forms import UserSelectionForm, ModelChoiceForm, LdaModelForm
+from .forms import UserSelectionForm, ModelChoiceForm, LdaModelForm, LsaModelForm
 from .models import PertinentWords
 from gensim import corpora, models
 from gensim.utils import simple_preprocess
@@ -93,27 +93,53 @@ def choose_model(request):
 def model_detail(request, selected_model):
     # Implement logic to display details for the selected model
     if request.method == 'POST':
-        form = LdaModelForm(request.POST)
+        if selected_model == 'LDA':
+            form = LdaModelForm(request.POST)
+        else:
+            form = LsaModelForm(request.POST)
         if form.is_valid():
-            selected_model = form.cleaned_data['lda_model']
+            if selected_model == 'LDA':
+                selected_model = form.cleaned_data['lda_model']
+            elif selected_model == 'LSA':
+                selected_model = form.cleaned_data['lsa_model']
             return redirect(f'{selected_model}/')
     else:
-        form = LdaModelForm()
-    return render(request, 'models_detail.html', {'form': form})
+        if selected_model == 'LDA':
+            form = LdaModelForm(request.POST)
+        else:
+            form = LsaModelForm(request.POST)
+    return render(request, 'models_detail.html', {'form': form, 'selected_model': selected_model})
 
-def selected_parameters(request):
+def selected_parameters(request, selected_model):
     # Get the selected parameters from the submitted form data
-    selected_parameters = {
-        'num_topics': request.POST.get('num_topics'),
-        'chunksize': request.POST.get('chunksize'),
-        'decay': request.POST.get('decay'),
-        'distributed': request.POST.get('distributed'),
-        'onepass': request.POST.get('onepass'),
-        'power_iters': request.POST.get('power_iters'),
-        'extra_samples': request.POST.get('extra_samples'),
-        'dtype': request.POST.get('dtype'),
-        'random_seed': request.POST.get('random_seed'),
-    }
+    if selected_model == 'LSA':
+        selected_parameters = {
+            'num_topics': request.POST.get('num_topics'),
+            'chunksize': request.POST.get('chunksize'),
+            'decay': request.POST.get('decay'),
+            'distributed': request.POST.get('distributed'),
+            'onepass': request.POST.get('onepass'),
+            'power_iters': request.POST.get('power_iters'),
+            'extra_samples': request.POST.get('extra_samples'),
+            'dtype': request.POST.get('dtype'),
+            'random_seed': request.POST.get('random_seed'),
+        }
+    else :
+        selected_parameters = {
+            'num_topics': request.POST.get('num_topics'),
+            'chunksize': request.POST.get('chunksize'),
+            'decay': request.POST.get('decay'),
+            'gamma_threshold': request.POST.get('gamma_threshold'),
+            'eval_every': request.POST.get('eval_every'),
+            'iterations': request.POST.get('iterations'),
+            'random_state': request.POST.get('random_state'),
+            'dtype': request.POST.get('dtype'),
+            'alpha': request.POST.get('alpha'),
+        }
 
     # Render the template with the selected parameters
     return render(request, 'selected_parameters_model.html', {'selected_parameters': selected_parameters})
+
+def add_corpus(request):
+    # Your view logic here
+    return render(request, 'add_corpus.html')

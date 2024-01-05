@@ -1,5 +1,5 @@
 from django import forms
-from .models import UserSelection, LdaModel
+from .models import UserSelection, LdaModel, LsaModel
 
 class UserSelectionForm(forms.ModelForm):
     class Meta:
@@ -15,9 +15,9 @@ class ModelChoiceForm(forms.Form):
 
     model_choice = forms.ChoiceField(choices=MODEL_CHOICES)
 
-class LdaModelForm(forms.ModelForm):
+class LsaModelForm(forms.ModelForm):
     class Meta:
-        model = LdaModel
+        model = LsaModel
         fields = '__all__'
         widgets = {
             'num_topics': forms.NumberInput(attrs={'placeholder': 'Optional'}),
@@ -32,6 +32,25 @@ class LdaModelForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        super(LsaModelForm, self).__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            field.required = False
+
+class LdaModelForm(forms.ModelForm):
+    class Meta:
+        model = LdaModel
+        fields = '__all__'
+        widgets = {
+            'num_topics': forms.NumberInput(attrs={'placeholder': 'Optional'}),
+            'chunksize': forms.NumberInput(attrs={'placeholder': 'Optional'}),
+            'decay': forms.NumberInput(attrs={'placeholder': 'Optional'}),
+            'gamma_threshold': forms.NumberInput(attrs={'step': 'any'}),
+            'dtype': forms.Select(choices=[('float32', 'float32'), ('float64', 'float64')]),  # Adjust choices based on your needs
+            # Add more widgets for other fields if needed
+        }
+
+    def __init__(self, *args, **kwargs):
         super(LdaModelForm, self).__init__(*args, **kwargs)
         for field_name, field in self.fields.items():
             field.required = False
+        # Set other fields as not required if needed
