@@ -82,26 +82,26 @@ WSGI_APPLICATION = "topic_modeling_project.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql_psycopg2",
-        "NAME": env("DB_NAME"),
-        "USER": env("DB_USER"),
-        "PASSWORD": env("DB_PASSWORD"),
-        "HOST": env("DB_HOST"),
-        "PORT": env("DB_PORT"),
-    }
-}
-
 # DATABASES = {
-#     'default': {
-#         'ENGINE': 'djongo',
-#         'NAME': 'your_db_name',
-#         'CLIENT': {
-#                 'host': 'mongodb+srv://andradacojocaru:andrada@cluster0.rpknlzf.mongodb.net/'
-#             }  
+#     "default": {
+#         "ENGINE": "django.db.backends.postgresql_psycopg2",
+#         "NAME": env("DB_NAME"),
+#         "USER": env("DB_USER"),
+#         "PASSWORD": env("DB_PASSWORD"),
+#         "HOST": env("DB_HOST"),
+#         "PORT": env("DB_PORT"),
 #     }
 # }
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'djongo',
+        'NAME': 'topic_modelling',
+        'CLIENT': {
+                'host': 'mongodb+srv://andradacojocaru:andrada@cluster0.rpknlzf.mongodb.net/'
+            }  
+    }
+}
 
 
 # Password validation

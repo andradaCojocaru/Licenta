@@ -7,6 +7,8 @@ from gensim.utils import simple_preprocess
 import spacy
 import pyLDAvis
 import pyLDAvis.gensim_models as gensimvis
+from django.db import connections
+from pymongo import MongoClient
 
 def home(request):
     return render(request, 'home.html')
@@ -136,9 +138,22 @@ def selected_parameters(request, selected_model):
             'dtype': request.POST.get('dtype'),
             'alpha': request.POST.get('alpha'),
         }
+        
+    save_to_mongodb(selected_parameters)
 
     # Render the template with the selected parameters
     return render(request, 'selected_parameters_model.html', {'selected_parameters': selected_parameters})
+
+def save_to_mongodb(selected_parameters):
+    # Use Djongo's database connection
+    client = MongoClient('mongodb+srv://andradacojocaru:andrada@cluster0.rpknlzf.mongodb.net/')  # Replace 'connection_string' with your actual connection string
+    db = client['topic_modelling']  # Replace 'db_name' with your actual database name
+
+    # Choose or create a collection in your database
+    collection = db['selected_parameters_collection']  # Replace 'selected_parameters_collection' with your actual collection name
+
+    # Insert the selected parameters into the collection
+    collection.insert_one(selected_parameters)
 
 def add_corpus(request):
     # Your view logic here

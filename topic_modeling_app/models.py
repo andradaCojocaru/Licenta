@@ -1,4 +1,4 @@
-from django.db import models
+from djongo import models
 
 class UserSelection(models.Model):
     preprocessing_option = models.CharField(max_length=100)
@@ -56,3 +56,6 @@ class PlsaModel(models.Model):
 
     def __str__(self):
         return f"PLSA Model - {self.num_topics} topics, {self.passes} passes"
+    
+class Corpus(models.Model):
+    name = models.CharField(max_length=255)
