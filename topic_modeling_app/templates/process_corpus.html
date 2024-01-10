@@ -1,0 +1,21 @@
+<!-- process_corpus.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Processed Corpus</title>
+</head>
+<body>
+    <h1>Processed Corpus</h1>
+    
+    <p><strong>Corpus Name:</strong> {{ corpus_name }}</p>
+    <p><strong>Preprocessing Option:</strong> {{ preprocessing_option }}</p>
+    <p><strong>Selected parameters</strong> {{ selected_parameters }}</p>
+    
+    <!-- Display other parameters as needed -->
+    {% for key, value in other_parameters.items %}
+        <p><strong>{{ key }}:</strong> {{ value }}</p>
+    {% endfor %}
+
+    <a href="{% url 'train_lsi_button'%}"><button>train_lsi</button></a>
+</body>
+</html>

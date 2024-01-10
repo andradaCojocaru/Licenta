@@ -9,6 +9,16 @@ import pyLDAvis
 import pyLDAvis.gensim_models as gensimvis
 from django.db import connections
 from pymongo import MongoClient
+from sklearn.datasets import fetch_20newsgroups
+from sklearn.feature_extraction.text import CountVectorizer
+import nltk
+from nltk.corpus import stopwords
+import os
+
+
+# Download NLTK stopwords
+nltk.download('stopwords')
+stop_words = set(stopwords.words('english'))
 
 def home(request):
     return render(request, 'home.html')
@@ -50,8 +60,13 @@ def topic_circles(request):
 
     return render(request, 'topic_circles.html', context)
 
+def get_saved_lsi_model(model_path):
+    # Load the LSI model from the saved file
+    lsi_model = models.LdaModel.load(os.path.join(model_path, 'lsi_model'))
+    return lsi_model
+
 def lda_visualization(request):
-    # Load a smaller dataset of tweets
+    #Load a smaller dataset of tweets
     dset_url = 'https://archive.org/download/misc-dataset/dp-export-tokenized.csv'
     tweets_df = pd.read_csv(dset_url, nrows=100)  # Load only the first 100 rows
     tweets = tweets_df['Tweets'].values.tolist()
@@ -73,8 +88,21 @@ def lda_visualization(request):
     corpus = [dictionary.doc2bow(text) for text in lemmatized_tweets]
 
     # Train an LDA model with fewer topics and passes
-    lda_model = models.LdaModel(corpus=corpus, id2word=dictionary, num_topics=3, passes=5)
+    lda_model = models.LdaModel(corpus=corpus, id2word=dictionary, num_topics=3)
 
+    model_path = "models"
+    os.makedirs(model_path, exist_ok=True)
+    lda_model.save(os.path.join(model_path, 'lsi_model'))   
+
+    lda_model_id = request.session.get('trained_lsi_model', None)
+    lda_model = get_saved_lsi_model("models")
+    # Retrieve the dictionary from the session and convert it back to Gensim dictionary
+    #preprocess_text = request.session.get('preprocess_text', [])
+
+    #dictionary = corpora.Dictionary(preprocess_text)
+
+    # Retrieve the corpus from the session
+    #corpus = request.session.get('corpus', [])
     # Create the pyLDAvis visualization
     vis_data = gensimvis.prepare(lda_model, corpus, dictionary)
     vis_html = pyLDAvis.prepared_data_to_html(vis_data)
@@ -138,23 +166,108 @@ def selected_parameters(request, selected_model):
             'dtype': request.POST.get('dtype'),
             'alpha': request.POST.get('alpha'),
         }
-        
-    save_to_mongodb(selected_parameters)
+    request.session['selected_parameters'] = {'selected_parameters': selected_parameters}
+    #save_to_mongodb(selected_parameters)
 
     # Render the template with the selected parameters
     return render(request, 'selected_parameters_model.html', {'selected_parameters': selected_parameters})
 
-def save_to_mongodb(selected_parameters):
+def save_to_mongodb(selected_parameters, corpus_name):
     # Use Djongo's database connection
     client = MongoClient('mongodb+srv://andradacojocaru:andrada@cluster0.rpknlzf.mongodb.net/')  # Replace 'connection_string' with your actual connection string
     db = client['topic_modelling']  # Replace 'db_name' with your actual database name
 
     # Choose or create a collection in your database
-    collection = db['selected_parameters_collection']  # Replace 'selected_parameters_collection' with your actual collection name
-
+    collection = db['combined_topic_model']  # Replace 'selected_parameters_collection' with your actual collection name
+    combined_data = {
+        'selected_parameters': selected_parameters,
+        'corpus_data': {
+            'corpus_name': corpus_name
+        },
+    }
     # Insert the selected parameters into the collection
-    collection.insert_one(selected_parameters)
+    collection.insert_one(combined_data)
 
 def add_corpus(request):
-    # Your view logic here
+    
+    # Process the form submission and save data to MongoDB or perform other actions
+
+    # Assuming you have retrieved the values from the form
+    corpus_name = request.POST.get('corpus_name')
+    #preprocessing_option = request.POST.get('preprocessing_option')
+    
+
+    # You can pass these values back to the template
     return render(request, 'add_corpus.html')
+    
+    # If it's a GET request, just render the form
+    
+
+
+def process_corpus(request):
+    # Process the form submission and save data to MongoDB or perform other actions
+    corpus_name = request.POST.get('corpus_name')
+    preprocessing_option = request.POST.get('preprocessing_option')
+    selected_parameters = request.session.get('selected_parameters', {}) 
+    save_to_mongodb(selected_parameters, corpus_name)
+
+    # Assuming you have other parameters for the model
+    # Retrieve them from the database or any other source as needed
+    # ...
+
+    # Pass the data to the template for the new page
+    return render(request, 'process_corpus.html', {'corpus_name': corpus_name, 'preprocessing_option': preprocessing_option, \
+                                                   'selected_parameters' : selected_parameters})
+
+def preprocess_text(text):
+    # Add your own text preprocessing logic here (e.g., removing stopwords, stemming)
+    tokens = [word for word in text.lower().split() if word.isalpha() and word not in stop_words]
+    return tokens
+
+def train_lsi_model(request):
+    # Fetch the 20 Newsgroups dataset
+    newsgroups = fetch_20newsgroups(subset='all', remove=('headers', 'footers', 'quotes'))
+
+    # Tokenize and preprocess the text
+    processed_text = [preprocess_text(text) for text in newsgroups.data]
+
+    # Create a dictionary from the processed text
+    dictionary = corpora.Dictionary(processed_text)
+
+    # Create a bag-of-words representation of the corpus
+    corpus_bow = [dictionary.doc2bow(text) for text in processed_text]
+    selected_parameters = request.session.get('selected_parameters', {})
+    num_topics = selected_parameters.get('selected_parameters', {}).get('num_topics', None)
+    #dictionary_as_list = list(dictionary.items())
+
+    # Store the converted dictionary in the session
+    request.session['processed_text'] = processed_text
+    request.session['corpus'] = corpus_bow
+    # Train the LSI model
+    if num_topics:
+        lsi_model = models.LdaModel(corpus_bow, id2word=dictionary, num_topics=num_topics)
+
+        # Save the trained model (optional)
+        # model_path = "models"
+        # os.makedirs(model_path, exist_ok=True)
+        # lsi_model.save(os.path.join(model_path, 'lsi_model'))
+
+        return lsi_model
+    return None
+def train_lsi_button(request):
+    trained = False
+    # Check if the button is clicked (POST request)
+    if request.method == 'POST' and 'train_button' in request.POST:
+        # Train the LSI model
+        trained_lsi_model = train_lsi_model(request)
+        request.session['trained_lsi_model'] = 1
+
+        # You can add further logic or pass information to the template if needed
+        if trained_lsi_model == None:
+            trained = False
+        else:
+            trained = True
+
+        return render(request, 'train_model.html', {'trained': trained})
+
+    return render(request, 'train_model.html', {'trained': trained})
