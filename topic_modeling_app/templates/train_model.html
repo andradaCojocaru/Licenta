@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Train LSI Model</title>
+</head>
+<body>
+    <h1>Train LSI Model</h1>
+
+    {% if trained %}
+        <p>LSI Model has been trained successfully!</p>
+        <a href="{% url 'lda_visualization'%}"><button>view results</button></a>
+    {% else %}
+        <form method="post" action="{% url 'train_lsi_button' %}">
+            {% csrf_token %}
+            <button type="submit" name="train_button">Train LSI Model</button>
+        </form>
+    {% endif %}
+</body>
+</html>
