@@ -57,5 +57,41 @@ class PlsaModel(models.Model):
     def __str__(self):
         return f"PLSA Model - {self.num_topics} topics, {self.passes} passes"
     
+class NmfModel(models.Model):
+    num_topics = models.IntegerField()
+    chunksize = models.IntegerField()
+    passes = models.IntegerField(null=True, blank=True)
+    kappa = models.FloatField(null=True, blank=True)
+    minimum_probability = models.FloatField(null=True, blank=True)
+    w_max_iter = models.IntegerField(null=True, blank=True)
+    w_stop_condition = models.FloatField(null=True, blank=True)
+    h_max_iter = models.IntegerField(null=True, blank=True)
+    h_stop_condition = models.FloatField(null=True, blank=True)
+    eval_every = models.IntegerField(null=True, blank=True)
+    normalize = models.BooleanField(null=True, blank=True)
+    random_state = models.IntegerField(null=True, blank=True)
+
+    def __str__(self):
+        return f"NMF Model - {self.num_topics} topics, {self.chunksize} chunksize"
+    
+class HdpModel(models.Model):
+    max_chunks = models.IntegerField(null=True, blank=True)
+    max_time = models.IntegerField(null=True, blank=True)
+    chunksize = models.IntegerField(null=True, blank=True)
+    kappa = models.FloatField(null=True, blank=True)
+    tau = models.FloatField(null=True, blank=True)
+    K = models.IntegerField(null=True, blank=True)
+    T = models.IntegerField(null=True, blank=True)
+    alpha = models.IntegerField(null=True, blank=True)
+    gamma = models.IntegerField(null=True, blank=True)
+    eta = models.FloatField(null=True, blank=True)
+    scale = models.FloatField(null=True, blank=True)
+    var_converge = models.FloatField(null=True, blank=True)
+    outputdir = models.CharField(max_length=255, null=True, blank=True)
+    random_state = models.IntegerField(null=True, blank=True)
+
+    def __str__(self):
+        return "HDP Model"
+    
 class Corpus(models.Model):
     name = models.CharField(max_length=255)
