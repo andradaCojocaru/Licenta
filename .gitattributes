@@ -14,3 +14,13 @@
 /models/lsi_model.id2word filter=lfs diff=lfs merge=lfs -text
 /models/lsi_model.projection filter=lfs diff=lfs merge=lfs -text
 /models/lsi_model.state filter=lfs diff=lfs merge=lfs -text
+/corpus filter=lfs diff=lfs merge=lfs -text
+/corpus_path filter=lfs diff=lfs merge=lfs -text
+/dict filter=lfs diff=lfs merge=lfs -text
+/dictionary_path filter=lfs diff=lfs merge=lfs -text
+/models/lda_model filter=lfs diff=lfs merge=lfs -text
+/models/lda_model.expElogbeta.npy filter=lfs diff=lfs merge=lfs -text
+/models/lda_model.id2word filter=lfs diff=lfs merge=lfs -text
+/models/lda_model.state filter=lfs diff=lfs merge=lfs -text
+/models/lsi_model filter=lfs diff=lfs merge=lfs -text
+/models/lsi_model.expElogbeta.npy filter=lfs diff=lfs merge=lfs -text

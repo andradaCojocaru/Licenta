@@ -13,12 +13,20 @@ from sklearn.datasets import fetch_20newsgroups
 from sklearn.feature_extraction.text import CountVectorizer
 import nltk
 from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer
+from nltk.tokenize import word_tokenize
+import re
 import os
 
 
 # Download NLTK stopwords
 nltk.download('stopwords')
+nltk.download('punkt')
 stop_words = set(stopwords.words('english'))
+# Text preprocessing: stemming and removing spaces
+stemmer = PorterStemmer()
+corpus_path = "C:\Licenta\topic_modeling_project\data\corpus"
+dictionary_path = "C:\Licenta\topic_modeling_project\data\dictionary"
 
 def home(request):
     return render(request, 'home.html')
@@ -62,47 +70,44 @@ def topic_circles(request):
 
 def get_saved_lsi_model(model_path):
     # Load the LSI model from the saved file
-    lsi_model = models.LdaModel.load(os.path.join(model_path, 'lsi_model'))
+    lsi_model = models.LdaModel.load(os.path.join(model_path, 'lda_model'))
     return lsi_model
 
 def lda_visualization(request):
     #Load a smaller dataset of tweets
-    dset_url = 'https://archive.org/download/misc-dataset/dp-export-tokenized.csv'
-    tweets_df = pd.read_csv(dset_url, nrows=100)  # Load only the first 100 rows
-    tweets = tweets_df['Tweets'].values.tolist()
-    tweets = [t.split(',') for t in tweets]
+    # dset_url = 'https://archive.org/download/misc-dataset/dp-export-tokenized.csv'
+    # tweets_df = pd.read_csv(dset_url, nrows=100)  # Load only the first 100 rows
+    # tweets = tweets_df['Tweets'].values.tolist()
+    # tweets = [t.split(',') for t in tweets]
 
-    # Example text preprocessing using spaCy for lemmatization
-    nlp = spacy.load("en_core_web_sm")
+    # # Example text preprocessing using spaCy for lemmatization
+    # nlp = spacy.load("en_core_web_sm")
 
-    # Lemmatize each document
-    lemmatized_tweets = []
-    for tweet in tweets:
-        lemmatized_text = []
-        for doc in nlp.pipe(tweet, disable=["parser", "ner"]):
-            lemmatized_text.extend([token.lemma_ for token in doc if not token.is_stop])
-        lemmatized_tweets.append(lemmatized_text)
+    # # Lemmatize each document
+    # lemmatized_tweets = []
+    # for tweet in tweets:
+    #     lemmatized_text = []
+    #     for doc in nlp.pipe(tweet, disable=["parser", "ner"]):
+    #         lemmatized_text.extend([token.lemma_ for token in doc if not token.is_stop])
+    #     lemmatized_tweets.append(lemmatized_text)
 
-    # Create a dictionary and a corpus (bag-of-words representation)
-    dictionary = corpora.Dictionary(lemmatized_tweets)
-    corpus = [dictionary.doc2bow(text) for text in lemmatized_tweets]
+    # # Create a dictionary and a corpus (bag-of-words representation)
+    # dictionary = corpora.Dictionary(lemmatized_tweets)
+    # corpus = [dictionary.doc2bow(text) for text in lemmatized_tweets]
 
-    # Train an LDA model with fewer topics and passes
-    lda_model = models.LdaModel(corpus=corpus, id2word=dictionary, num_topics=3)
+    # # Train an LDA model with fewer topics and passes
+    # lda_model = models.LdaModel(corpus=corpus, id2word=dictionary, num_topics=3)
 
-    model_path = "models"
-    os.makedirs(model_path, exist_ok=True)
-    lda_model.save(os.path.join(model_path, 'lsi_model'))   
+    # model_path = "models"
+    # os.makedirs(model_path, exist_ok=True)
+    # lda_model.save(os.path.join(model_path, 'lsi_model'))   
 
     lda_model_id = request.session.get('trained_lsi_model', None)
     lda_model = get_saved_lsi_model("models")
-    # Retrieve the dictionary from the session and convert it back to Gensim dictionary
-    #preprocess_text = request.session.get('preprocess_text', [])
 
-    #dictionary = corpora.Dictionary(preprocess_text)
+    dictionary = corpora.Dictionary.load("dictionary_path")
+    corpus = corpora.MmCorpus("corpus_path")
 
-    # Retrieve the corpus from the session
-    #corpus = request.session.get('corpus', [])
     # Create the pyLDAvis visualization
     vis_data = gensimvis.prepare(lda_model, corpus, dictionary)
     vis_html = pyLDAvis.prepared_data_to_html(vis_data)
@@ -220,8 +225,17 @@ def process_corpus(request):
                                                    'selected_parameters' : selected_parameters})
 
 def preprocess_text(text):
-    # Add your own text preprocessing logic here (e.g., removing stopwords, stemming)
-    tokens = [word for word in text.lower().split() if word.isalpha() and word not in stop_words]
+    # Remove non-alphabetic characters and convert to lowercase
+    text = re.sub(r'[^a-zA-Z]', ' ', text.lower())
+    
+    # Tokenize and stem each word, exclude short words, and remove stopwords
+    tokens = [
+        stemmer.stem(word) 
+        for word in word_tokenize(text) 
+        if word.isalpha() and len(word) > 2 and word not in stop_words
+    ]
+    
+    # Join the stemmed tokens back into a single string
     return tokens
 
 def train_lsi_model(request):
@@ -233,24 +247,23 @@ def train_lsi_model(request):
 
     # Create a dictionary from the processed text
     dictionary = corpora.Dictionary(processed_text)
+    dictionary.save("dictionary_path")
 
     # Create a bag-of-words representation of the corpus
     corpus_bow = [dictionary.doc2bow(text) for text in processed_text]
+    corpora.MmCorpus.serialize("corpus_path", corpus_bow)
     selected_parameters = request.session.get('selected_parameters', {})
     num_topics = selected_parameters.get('selected_parameters', {}).get('num_topics', None)
     #dictionary_as_list = list(dictionary.items())
 
-    # Store the converted dictionary in the session
-    request.session['processed_text'] = processed_text
-    request.session['corpus'] = corpus_bow
     # Train the LSI model
     if num_topics:
         lsi_model = models.LdaModel(corpus_bow, id2word=dictionary, num_topics=num_topics)
 
         # Save the trained model (optional)
-        # model_path = "models"
-        # os.makedirs(model_path, exist_ok=True)
-        # lsi_model.save(os.path.join(model_path, 'lsi_model'))
+        model_path = "models"
+        os.makedirs(model_path, exist_ok=True)
+        lsi_model.save(os.path.join(model_path, 'lda_model'))
 
         return lsi_model
     return None

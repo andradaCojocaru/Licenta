@@ -11,6 +11,8 @@ class ModelChoiceForm(forms.Form):
         ('LSA', 'LSA'),
         ('LDA', 'LDA'),
         ('PLSA', 'PLSA'),
+        ('NMF', 'NMF'),
+        ('HDP', 'HDP'),
     ]
 
     model_choice = forms.ChoiceField(choices=MODEL_CHOICES)
