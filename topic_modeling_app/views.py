@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 import pandas as pd
-from .forms import UserSelectionForm, ModelChoiceForm, LdaModelForm, LsaModelForm
+from .forms import UserSelectionForm, ModelChoiceForm, LdaModelForm, LsaModelForm, NmfModelForm, HdpModelForm
+
 from .models import PertinentWords
 from gensim import corpora, models
 from gensim.utils import simple_preprocess
@@ -105,8 +106,8 @@ def lda_visualization(request):
     lda_model_id = request.session.get('trained_lsi_model', None)
     lda_model = get_saved_lsi_model("models")
 
-    dictionary = corpora.Dictionary.load("dictionary_path")
-    corpus = corpora.MmCorpus("corpus_path")
+    dictionary = corpora.Dictionary.load(dictionary_path)
+    corpus = corpora.MmCorpus(corpus_path)
 
     # Create the pyLDAvis visualization
     vis_data = gensimvis.prepare(lda_model, corpus, dictionary)
@@ -130,19 +131,33 @@ def model_detail(request, selected_model):
     if request.method == 'POST':
         if selected_model == 'LDA':
             form = LdaModelForm(request.POST)
-        else:
+        elif selected_model == 'NMF':
+            form = NmfModelForm(request.POST)
+        elif selected_model == 'HDP':
+            form = HdpModelForm(request.POST)
+        elif selected_model == 'LSA':
             form = LsaModelForm(request.POST)
+        else:
+            # Handle other models or raise an exception for unsupported models
+            raise ValueError("Invalid selected model")
+
         if form.is_valid():
-            if selected_model == 'LDA':
-                selected_model = form.cleaned_data['lda_model']
-            elif selected_model == 'LSA':
-                selected_model = form.cleaned_data['lsa_model']
+            # Process the form data and redirect accordingly
+            # ...
+
             return redirect(f'{selected_model}/')
     else:
         if selected_model == 'LDA':
-            form = LdaModelForm(request.POST)
+            form = LdaModelForm()
+        elif selected_model == 'NMF':
+            form = NmfModelForm()
+        elif selected_model == 'HDP':
+            form = HdpModelForm()
+        elif selected_model == 'LSA':
+            form = LsaModelForm()
         else:
-            form = LsaModelForm(request.POST)
+            # Handle other models or raise an exception for unsupported models
+            raise ValueError("Invalid selected model")
     return render(request, 'models_detail.html', {'form': form, 'selected_model': selected_model})
 
 def selected_parameters(request, selected_model):
@@ -159,6 +174,38 @@ def selected_parameters(request, selected_model):
             'dtype': request.POST.get('dtype'),
             'random_seed': request.POST.get('random_seed'),
         }
+    elif selected_model == 'HDP':
+        selected_parameters = {
+            'max_chunks': request.POST.get('max_chunks'),
+            'max_time': request.POST.get('max_time'),
+            'chunksize': request.POST.get('chunksize'),
+            'kappa': request.POST.get('kappa'),
+            'tau': request.POST.get('tau'),
+            'K': request.POST.get('K'),
+            'T': request.POST.get('T'),
+            'alpha': request.POST.get('alpha'),
+            'gamma': request.POST.get('gamma'),
+            'eta': request.POST.get('eta'),
+            'scale': request.POST.get('scale'),
+            'var_converge': request.POST.get('var_converge'),
+            'outputdir': request.POST.get('outputdir'),
+            'random_state': request.POST.get('random_state'),
+        }
+    elif selected_model == 'NMF':
+        selected_parameters = {
+            'num_topics': request.POST.get('num_topics'),
+            'chunksize': request.POST.get('chunksize'),
+            'passes': request.POST.get('passes'),
+            'kappa': request.POST.get('kappa'),
+            'minimum_probability': request.POST.get('minimum_probability'),
+            'w_max_iter': request.POST.get('w_max_iter'),
+            'w_stop_condition': request.POST.get('w_stop_condition'),
+            'h_max_iter': request.POST.get('h_max_iter'),
+            'h_stop_condition': request.POST.get('h_stop_condition'),
+            'eval_every': request.POST.get('eval_every'),
+            'normalize': request.POST.get('normalize'),
+            'random_state': request.POST.get('random_state'),
+        }
     else :
         selected_parameters = {
             'num_topics': request.POST.get('num_topics'),
@@ -171,6 +218,7 @@ def selected_parameters(request, selected_model):
             'dtype': request.POST.get('dtype'),
             'alpha': request.POST.get('alpha'),
         }
+    
     request.session['selected_parameters'] = {'selected_parameters': selected_parameters}
     #save_to_mongodb(selected_parameters)
 
@@ -251,7 +299,7 @@ def train_lsi_model(request):
 
     # Create a bag-of-words representation of the corpus
     corpus_bow = [dictionary.doc2bow(text) for text in processed_text]
-    corpora.MmCorpus.serialize("corpus_path", corpus_bow)
+    corpora.MmCorpus.serialize(corpus_path, corpus_bow)
     selected_parameters = request.session.get('selected_parameters', {})
     num_topics = selected_parameters.get('selected_parameters', {}).get('num_topics', None)
     #dictionary_as_list = list(dictionary.items())
