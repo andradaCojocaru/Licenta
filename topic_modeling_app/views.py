@@ -1,3 +1,4 @@
+from datetime import datetime
 from django.shortcuts import render, redirect
 import pandas as pd
 from .forms import UserSelectionForm, ModelChoiceForm, LdaModelForm, LsaModelForm, NmfModelForm, HdpModelForm
@@ -18,6 +19,17 @@ from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
 import re
 import os
+# import random
+# import string
+
+# def generate_random_string(length):
+#     # Define the characters to choose from (letters and digits)
+#     characters = string.ascii_letters + string.digits
+
+#     # Generate a random string of the specified length
+#     random_string = ''.join(random.choice(characters) for _ in range(length))
+
+#     return random_string
 
 
 # Download NLTK stopwords
@@ -26,8 +38,8 @@ nltk.download('punkt')
 stop_words = set(stopwords.words('english'))
 # Text preprocessing: stemming and removing spaces
 stemmer = PorterStemmer()
-corpus_path = "C:\Licenta\topic_modeling_project\data\corpus"
-dictionary_path = "C:\Licenta\topic_modeling_project\data\dictionary"
+corpus_path = "C:\\Licenta\\topic_modeling_project\\data\\corpus"
+dictionary_path = "C:\\Licenta\\topic_modeling_project\\data\\dictionary"
 
 def home(request):
     return render(request, 'home.html')
@@ -69,9 +81,9 @@ def topic_circles(request):
 
     return render(request, 'topic_circles.html', context)
 
-def get_saved_lsi_model(model_path):
+def get_saved_lsi_model(model_path, model_id):
     # Load the LSI model from the saved file
-    lsi_model = models.LdaModel.load(os.path.join(model_path, 'lda_model'))
+    lsi_model = models.LdaModel.load(os.path.join(model_path, model_id))
     return lsi_model
 
 def lda_visualization(request):
@@ -103,11 +115,11 @@ def lda_visualization(request):
     # os.makedirs(model_path, exist_ok=True)
     # lda_model.save(os.path.join(model_path, 'lsi_model'))   
 
-    lda_model_id = request.session.get('trained_lsi_model', None)
-    lda_model = get_saved_lsi_model("models")
+    model_id = request.session.get('model_id', None)
+    lda_model = get_saved_lsi_model("models", model_id)
 
-    dictionary = corpora.Dictionary.load(dictionary_path)
-    corpus = corpora.MmCorpus(corpus_path)
+    dictionary = corpora.Dictionary.load(os.path.join(dictionary_path, model_id))
+    corpus = corpora.MmCorpus(os.path.join(corpus_path, model_id))
 
     # Create the pyLDAvis visualization
     vis_data = gensimvis.prepare(lda_model, corpus, dictionary)
@@ -162,6 +174,7 @@ def model_detail(request, selected_model):
 
 def selected_parameters(request, selected_model):
     # Get the selected parameters from the submitted form data
+    request.session['model_name'] = selected_model
     if selected_model == 'LSA':
         selected_parameters = {
             'num_topics': request.POST.get('num_topics'),
@@ -225,7 +238,7 @@ def selected_parameters(request, selected_model):
     # Render the template with the selected parameters
     return render(request, 'selected_parameters_model.html', {'selected_parameters': selected_parameters})
 
-def save_to_mongodb(selected_parameters, corpus_name):
+def save_to_mongodb(selected_parameters, corpus_name, model_id, model_name):
     # Use Djongo's database connection
     client = MongoClient('mongodb+srv://andradacojocaru:andrada@cluster0.rpknlzf.mongodb.net/')  # Replace 'connection_string' with your actual connection string
     db = client['topic_modelling']  # Replace 'db_name' with your actual database name
@@ -237,6 +250,8 @@ def save_to_mongodb(selected_parameters, corpus_name):
         'corpus_data': {
             'corpus_name': corpus_name
         },
+        'model_id': model_id,
+        'model_name': model_name 
     }
     # Insert the selected parameters into the collection
     collection.insert_one(combined_data)
@@ -262,7 +277,14 @@ def process_corpus(request):
     corpus_name = request.POST.get('corpus_name')
     preprocessing_option = request.POST.get('preprocessing_option')
     selected_parameters = request.session.get('selected_parameters', {}) 
-    save_to_mongodb(selected_parameters, corpus_name)
+    model_id = datetime.now().strftime("%Y%m%d%H%M%S%f")
+    request.session['model_id'] = model_id
+    model_name = request.session.get('model_name') 
+    os.makedirs(dictionary_path, exist_ok=True)
+    os.makedirs(corpus_path, exist_ok=True)
+    os.makedirs("models", exist_ok=True)
+
+    save_to_mongodb(selected_parameters, corpus_name, model_id, model_name)
 
     # Assuming you have other parameters for the model
     # Retrieve them from the database or any other source as needed
@@ -292,39 +314,42 @@ def train_lsi_model(request):
 
     # Tokenize and preprocess the text
     processed_text = [preprocess_text(text) for text in newsgroups.data]
+    model_id = request.session.get('model_id')
+
 
     # Create a dictionary from the processed text
     dictionary = corpora.Dictionary(processed_text)
-    dictionary.save("dictionary_path")
+    dictionary.save(os.path.join(dictionary_path, model_id))
 
     # Create a bag-of-words representation of the corpus
     corpus_bow = [dictionary.doc2bow(text) for text in processed_text]
-    corpora.MmCorpus.serialize(corpus_path, corpus_bow)
+    corpora.MmCorpus.serialize(os.path.join(corpus_path, model_id), corpus_bow)
     selected_parameters = request.session.get('selected_parameters', {})
-    num_topics = selected_parameters.get('selected_parameters', {}).get('num_topics', None)
+    params = {
+        key: value 
+        for key, value in selected_parameters.get('selected_parameters', {}).items() 
+        if value is not None and value.strip()
+    }
+    #num_topics = selected_parameters.get('selected_parameters', {}).get('num_topics', None)
     #dictionary_as_list = list(dictionary.items())
 
-    # Train the LSI model
-    if num_topics:
-        lsi_model = models.LdaModel(corpus_bow, id2word=dictionary, num_topics=num_topics)
+    model = models.LdaModel(corpus_bow, id2word=dictionary, **params)
 
-        # Save the trained model (optional)
-        model_path = "models"
-        os.makedirs(model_path, exist_ok=True)
-        lsi_model.save(os.path.join(model_path, 'lda_model'))
+    # Save the trained model (optional)
+    model_path = "models"
+    #os.makedirs(model_path, exist_ok=True)
+    model.save(os.path.join(model_path, model_id))
 
-        return lsi_model
-    return None
+    return model
 def train_lsi_button(request):
     trained = False
     # Check if the button is clicked (POST request)
     if request.method == 'POST' and 'train_button' in request.POST:
         # Train the LSI model
-        trained_lsi_model = train_lsi_model(request)
-        request.session['trained_lsi_model'] = 1
+        trained_model = train_lsi_model(request)
 
         # You can add further logic or pass information to the template if needed
-        if trained_lsi_model == None:
+        if trained_model == None:
             trained = False
         else:
             trained = True
