@@ -1,6 +1,8 @@
 from datetime import datetime
 from django.shortcuts import render, redirect
 import pandas as pd
+import multiprocessing
+from .tasks import train_model_in_child_process
 from .forms import UserSelectionForm, ModelChoiceForm, LdaModelForm, LsaModelForm, NmfModelForm, HdpModelForm
 
 from .models import PertinentWords
@@ -40,6 +42,7 @@ stop_words = set(stopwords.words('english'))
 stemmer = PorterStemmer()
 corpus_path = "C:\\Licenta\\topic_modeling_project\\data\\corpus"
 dictionary_path = "C:\\Licenta\\topic_modeling_project\\data\\dictionary"
+models_path = "C:\\Licenta\\topic_modeling_project\\models"
 
 def home(request):
     return render(request, 'home.html')
@@ -81,9 +84,9 @@ def topic_circles(request):
 
     return render(request, 'topic_circles.html', context)
 
-def get_saved_lsi_model(model_path, model_id):
+def get_saved_lsi_model(model_id):
     # Load the LSI model from the saved file
-    lsi_model = models.LdaModel.load(os.path.join(model_path, model_id))
+    lsi_model = models.LdaModel.load(os.path.join(models_path, model_id))
     return lsi_model
 
 def lda_visualization(request):
@@ -116,10 +119,11 @@ def lda_visualization(request):
     # lda_model.save(os.path.join(model_path, 'lsi_model'))   
 
     model_id = request.session.get('model_id', None)
-    lda_model = get_saved_lsi_model("models", model_id)
+    text_id = request.session.get('text_id', None)
+    lda_model = get_saved_lsi_model(model_id)
 
-    dictionary = corpora.Dictionary.load(os.path.join(dictionary_path, model_id))
-    corpus = corpora.MmCorpus(os.path.join(corpus_path, model_id))
+    dictionary = corpora.Dictionary.load(os.path.join(dictionary_path, text_id))
+    corpus = corpora.MmCorpus(os.path.join(corpus_path, text_id))
 
     # Create the pyLDAvis visualization
     vis_data = gensimvis.prepare(lda_model, corpus, dictionary)
@@ -242,19 +246,42 @@ def save_to_mongodb(selected_parameters, corpus_name, model_id, model_name):
     # Use Djongo's database connection
     client = MongoClient('mongodb+srv://andradacojocaru:andrada@cluster0.rpknlzf.mongodb.net/')  # Replace 'connection_string' with your actual connection string
     db = client['topic_modelling']  # Replace 'db_name' with your actual database name
-
     # Choose or create a collection in your database
     collection = db['combined_topic_model']  # Replace 'selected_parameters_collection' with your actual collection name
+
+    existing_data = collection.find_one({
+        'corpus_data.corpus_name': corpus_name,
+        'selected_parameters': selected_parameters
+    })
+
+    if existing_data:
+        print("Data with the same corpus name, model name, and parameters already exists.")
+        return existing_data['model_id'], True, True
+    
+    # Check if data with the same corpus name exists
+    existing_corpus_data = collection.find_one({
+        'corpus_data.corpus_name': corpus_name
+    })
+    text_id = model_id
+
+    if existing_corpus_data:
+        print("Data with the same corpus name already exists, but parameters or model name may differ.")
+        text_id = existing_corpus_data['text_id']
+    
     combined_data = {
         'selected_parameters': selected_parameters,
         'corpus_data': {
             'corpus_name': corpus_name
         },
         'model_id': model_id,
+        'text_id': text_id,
         'model_name': model_name 
     }
     # Insert the selected parameters into the collection
     collection.insert_one(combined_data)
+    if existing_corpus_data:
+        return text_id, False, True
+    return model_id, False, False
 
 def add_corpus(request):
     
@@ -278,13 +305,23 @@ def process_corpus(request):
     preprocessing_option = request.POST.get('preprocessing_option')
     selected_parameters = request.session.get('selected_parameters', {}) 
     model_id = datetime.now().strftime("%Y%m%d%H%M%S%f")
-    request.session['model_id'] = model_id
+    text_id = model_id
     model_name = request.session.get('model_name') 
     os.makedirs(dictionary_path, exist_ok=True)
     os.makedirs(corpus_path, exist_ok=True)
-    os.makedirs("models", exist_ok=True)
+    os.makedirs(models_path, exist_ok=True)
 
-    save_to_mongodb(selected_parameters, corpus_name, model_id, model_name)
+    id, corpus_exists, data_exists = save_to_mongodb(selected_parameters, corpus_name, model_id, model_name)
+    request.session['id'] = id
+    request.session['corpus_exists'] = corpus_exists
+    request.session['data_exists'] = data_exists
+
+    if data_exists:
+        model_id = id
+    if corpus_exists:
+        text_id = id
+    request.session['model_id'] = model_id
+    request.session['text_id'] = text_id
 
     # Assuming you have other parameters for the model
     # Retrieve them from the database or any other source as needed
@@ -315,33 +352,62 @@ def train_lsi_model(request):
     # Tokenize and preprocess the text
     processed_text = [preprocess_text(text) for text in newsgroups.data]
     model_id = request.session.get('model_id')
+    text_id = request.session.get('text_id')
+    corpus_exists = request.session.get('corpus_exists')
+    data_exists = request.session.get('data_exists')
 
-
+    if data_exists == False:
     # Create a dictionary from the processed text
-    dictionary = corpora.Dictionary(processed_text)
-    dictionary.save(os.path.join(dictionary_path, model_id))
+        if corpus_exists == False:
+            dictionary = corpora.Dictionary(processed_text)
+            dictionary.save(os.path.join(dictionary_path, text_id))
 
-    # Create a bag-of-words representation of the corpus
-    corpus_bow = [dictionary.doc2bow(text) for text in processed_text]
-    corpora.MmCorpus.serialize(os.path.join(corpus_path, model_id), corpus_bow)
-    selected_parameters = request.session.get('selected_parameters', {})
-    params = {
-        key: value 
-        for key, value in selected_parameters.get('selected_parameters', {}).items() 
-        if value is not None and value.strip()
-    }
-    #num_topics = selected_parameters.get('selected_parameters', {}).get('num_topics', None)
-    #dictionary_as_list = list(dictionary.items())
+            # Create a bag-of-words representation of the corpus
+            corpus_bow = [dictionary.doc2bow(text) for text in processed_text]
+            corpora.MmCorpus.serialize(os.path.join(corpus_path, text_id), corpus_bow)
+        else:
+            dictionary = corpora.Dictionary.load(os.path.join(dictionary_path, text_id))
+            corpus_bow = corpora.MmCorpus(os.path.join(corpus_path, text_id))
+        selected_parameters = request.session.get('selected_parameters', {})
+        params = {
+            key: value 
+            for key, value in selected_parameters.get('selected_parameters', {}).items() 
+            if value is not None and value.strip()
+        }
+        #num_topics = selected_parameters.get('selected_parameters', {}).get('num_topics', None)
+        #dictionary_as_list = list(dictionary.items())
 
-    model = models.LdaModel(corpus_bow, id2word=dictionary, **params)
+        # Create a multiprocessing pool
+        #pool = multiprocessing.Pool(processes=1)
 
-    # Save the trained model (optional)
-    model_path = "models"
-    #os.makedirs(model_path, exist_ok=True)
-    model.save(os.path.join(model_path, model_id))
+        # Call the function asynchronously in a child process
+        #result = pool.apply_async(train_model_in_child_process, (corpus_bow, dictionary, params, model_id, models_path))
+
+        # Close the pool to release resources
+        #pool.close()
+        #pool.join()
+        #processid = os.fork()
+        #print(processid)
+
+        # processid > 0 represents the parent process
+        # if processid > 0 :
+        #     print("\nParent Process:")
+        #     print("Process ID:", os.getpid())
+        #     print("Child's process ID:", processid)
+
+        # # processid = 0 represents the created child process
+        # else :
+        #     print("\nChild Process:")
+        #     print("Process ID:", os.getpid())
+        #     print("Parent's process ID:", os.getppid())
+        model = models.LdaModel(corpus_bow, id2word=dictionary, **params)
+        model.save(os.path.join(models_path, model_id))
+    else:
+        model = get_saved_lsi_model(model_id)
 
     return model
-def train_lsi_button(request):
+
+def train_button(request):
     trained = False
     # Check if the button is clicked (POST request)
     if request.method == 'POST' and 'train_button' in request.POST:

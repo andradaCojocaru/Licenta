@@ -28,15 +28,6 @@
           >
             <a class="nav-link" href="{% url 'select_options' %}">Models</a>
           </li>
-          <li
-            {% if 'lda' in request.path %}
-              class="nav-item active mr-3"
-            {% else %}
-              class="nav-item mr-3"
-            {% endif %}
-          >
-            <a class="nav-link" href="{% url 'lda_visualization' %}">LDA</a>
-          </li>
           <!-- <li
             {% if 'about' in request.path %}
               class="nav-item active mr-3"

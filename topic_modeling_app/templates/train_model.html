@@ -1,19 +1,60 @@
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-    <title>Train LSI Model</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="{% static 'css/all.css' %}">
+  <!-- Bootstrap -->
+  <link rel="stylesheet" href="{% static 'css/bootstrap.css' %}">
+  <!-- Custom -->
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <!-- Lightbox -->
+  <link rel="stylesheet" href="{% static 'css/lightbox.min.css' %}">
+  <style>
+    .max-width-img {
+      max-width: 100%; /* Adjust the max-width as needed for a larger width */
+      max-height: 80%; /* Adjust the max-height as needed for a smaller height */
+      width: auto; /* Maintain the aspect ratio */
+      height: auto; /* Ensure the image doesn't exceed the specified max-height */
+    }
+  </style>
+
+  <title> Topic Modeling {% block title %}{% endblock %}</title>
 </head>
+
 <body>
-    <h1>Train LSI Model</h1>
+  <!-- Top Bar -->
+  {% include 'partials/_topbar.html' %}
+  <!-- NavBar -->
+  {% include 'partials/_navbar.html' %}
+    <!-- Main Content -->
+    {% block content %}
+    <head>
+        <title>Train Model</title>
+    </head>
+    <h1>Train Model</h1>
 
     {% if trained %}
-        <p>LSI Model has been trained successfully!</p>
+        <p>Model has been trained successfully!</p>
         <a href="{% url 'lda_visualization'%}"><button>view results</button></a>
     {% else %}
-        <form method="post" action="{% url 'train_lsi_button' %}">
+        <form method="post" action="{% url 'train_button' %}">
             {% csrf_token %}
-            <button type="submit" name="train_button">Train LSI Model</button>
+            <button type="submit" name="train_button">Train Model</button>
         </form>
     {% endif %}
+    {% endblock %}
+  <!-- Footer -->
+  {% include 'partials/_footer.html' %}
+  
+
+  <script src="{% static 'js/jquery-3.3.1.min.js' %} "></script>
+  <script src="{% static 'js/bootstrap.bundle.min.js' %} "></script>
+  <script src="{% static 'js/lightbox.min.js' %} "></script>
+  <script src="{% static 'js/main.js' %} "></script>
 </body>
-</html>
+
