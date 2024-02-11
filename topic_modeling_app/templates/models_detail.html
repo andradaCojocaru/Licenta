@@ -34,6 +34,10 @@
         margin-top: 5px; /* Adjust spacing between input field and help text */
     }
 
+    .my-button {
+      margin-bottom: 80px;
+    }
+
   </style>
 
   <title> Topic Modeling {% block title %}{% endblock %}</title>
@@ -63,7 +67,7 @@
           </div>
       {% endfor %}
       
-      <button type="submit">Submit</button>
+      <button class="my-button" type="submit">Submit</button>
   </form>
   
     {% endblock %}
