@@ -16,12 +16,24 @@
   <!-- Lightbox -->
   <link rel="stylesheet" href="{% static 'css/lightbox.min.css' %}">
   <style>
-    .max-width-img {
-      max-width: 100%; /* Adjust the max-width as needed for a larger width */
-      max-height: 80%; /* Adjust the max-height as needed for a smaller height */
-      width: auto; /* Maintain the aspect ratio */
-      height: auto; /* Ensure the image doesn't exceed the specified max-height */
+    .form-group {
+    margin-bottom: 15px;
     }
+
+    .input-wrapper {
+        display: flex;
+        align-items: center;
+    }
+
+    .input-wrapper label {
+        flex: 1;
+        margin-right: 10px; /* Adjust spacing between label and input field */
+    }
+
+    .input-wrapper .form-text {
+        margin-top: 5px; /* Adjust spacing between input field and help text */
+    }
+
   </style>
 
   <title> Topic Modeling {% block title %}{% endblock %}</title>
@@ -37,10 +49,23 @@
     <h1>Details for {{ selected_model }}</h1>
     <!-- Add logic to display details based on the selected_model -->
     <form method="post" action="{% url 'selected_parameters' selected_model=selected_model %}">
-        {% csrf_token %}
-        {{ form }}
-        <button type="submit">Submit</button>
-    </form>
+      {% csrf_token %}
+      
+      {% for field in form %}
+          <div class="form-group">
+              {{ field.label_tag }}
+              <div class="input-wrapper">
+                  {{ field }}
+                  {% if field.help_text %}
+                      <small class="form-text text-muted">{{ field.help_text }}</small>
+                  {% endif %}
+              </div>
+          </div>
+      {% endfor %}
+      
+      <button type="submit">Submit</button>
+  </form>
+  
     {% endblock %}
   <!-- Footer -->
   {% include 'partials/_footer.html' %}
