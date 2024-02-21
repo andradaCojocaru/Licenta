@@ -4,7 +4,8 @@ import pandas as pd
 import multiprocessing
 from .tasks import train_model_in_child_process
 from .forms import UserSelectionForm, ModelChoiceForm, LdaModelForm, LsaModelForm, NmfModelForm, HdpModelForm
-
+from concurrent.futures import ProcessPoolExecutor
+import concurrent.futures
 from .models import PertinentWords
 from gensim import corpora, models
 from gensim.utils import simple_preprocess
@@ -344,7 +345,7 @@ def preprocess_text(text):
     
     # Join the stemmed tokens back into a single string
     return tokens
-
+    
 def train_lsi_model(request):
     # Fetch the 20 Newsgroups dataset
     newsgroups = fetch_20newsgroups(subset='all', remove=('headers', 'footers', 'quotes'))
@@ -400,8 +401,17 @@ def train_lsi_model(request):
         #     print("\nChild Process:")
         #     print("Process ID:", os.getpid())
         #     print("Parent's process ID:", os.getppid())
-        model = models.LdaModel(corpus_bow, id2word=dictionary, **params)
-        model.save(os.path.join(models_path, model_id))
+        # model = models.LdaModel(corpus_bow, id2word=dictionary, **params)
+        # model.save(os.path.join(models_path, model_id))
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            # Submit the training task to the executor
+            future = executor.submit(
+                train_model_in_child_process,
+                corpus_bow, dictionary, params, model_id, models_path
+            )
+
+            # Wait for the task to complete
+            return future.result()
     else:
         model = get_saved_lsi_model(model_id)
 
