@@ -104,3 +104,9 @@
 /models/20240226220424034166.expElogbeta.npy filter=lfs diff=lfs merge=lfs -text
 /models/20240226220424034166.id2word filter=lfs diff=lfs merge=lfs -text
 /models/20240226220424034166.state filter=lfs diff=lfs merge=lfs -text
+/data/corpus/20240226231251336073 filter=lfs diff=lfs merge=lfs -text
+/data/dictionary/20240226231251336073 filter=lfs diff=lfs merge=lfs -text
+/models/20240226231251336073 filter=lfs diff=lfs merge=lfs -text
+/models/20240226231251336073.expElogbeta.npy filter=lfs diff=lfs merge=lfs -text
+/models/20240226231251336073.id2word filter=lfs diff=lfs merge=lfs -text
+/models/20240226231251336073.state filter=lfs diff=lfs merge=lfs -text

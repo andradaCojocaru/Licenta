@@ -2,6 +2,8 @@ from datetime import datetime
 from django.shortcuts import render, redirect
 import pandas as pd
 import multiprocessing
+from .preprocessing import preprocess_text
+from .db import save_to_mongodb
 from .tasks import train_model_in_child_process
 from .forms import ModelChoiceForm, LdaModelForm, LsaModelForm, NmfModelForm, HdpModelForm
 from concurrent.futures import ProcessPoolExecutor
@@ -13,22 +15,11 @@ import spacy
 import pyLDAvis
 import pyLDAvis.gensim_models as gensimvis
 from django.db import connections
-from pymongo import MongoClient
 from sklearn.datasets import fetch_20newsgroups
 from sklearn.feature_extraction.text import CountVectorizer
-import nltk
-from nltk.corpus import stopwords
-from nltk.stem import PorterStemmer
-from nltk.tokenize import word_tokenize
-import re
+
 import os
 
-# Download NLTK stopwords
-nltk.download('stopwords')
-nltk.download('punkt')
-stop_words = set(stopwords.words('english'))
-# Text preprocessing: stemming and removing spaces
-stemmer = PorterStemmer()
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 corpus_path = os.path.join(BASE_DIR, 'data', 'corpus')
@@ -112,109 +103,29 @@ def model_detail(request, selected_model):
 def selected_parameters(request, selected_model):
     # Get the selected parameters from the submitted form data
     request.session['model_name'] = selected_model
-    if selected_model == 'LSA':
-        selected_parameters = {
-            'num_topics': request.POST.get('num_topics'),
-            'chunksize': request.POST.get('chunksize'),
-            'decay': request.POST.get('decay'),
-            'distributed': request.POST.get('distributed'),
-            'onepass': request.POST.get('onepass'),
-            'power_iters': request.POST.get('power_iters'),
-            'extra_samples': request.POST.get('extra_samples'),
-            'dtype': request.POST.get('dtype'),
-            'random_seed': request.POST.get('random_seed'),
-        }
-    elif selected_model == 'HDP':
-        selected_parameters = {
-            'max_chunks': request.POST.get('max_chunks'),
-            'max_time': request.POST.get('max_time'),
-            'chunksize': request.POST.get('chunksize'),
-            'kappa': request.POST.get('kappa'),
-            'tau': request.POST.get('tau'),
-            'K': request.POST.get('K'),
-            'T': request.POST.get('T'),
-            'alpha': request.POST.get('alpha'),
-            'gamma': request.POST.get('gamma'),
-            'eta': request.POST.get('eta'),
-            'scale': request.POST.get('scale'),
-            'var_converge': request.POST.get('var_converge'),
-            'outputdir': request.POST.get('outputdir'),
-            'random_state': request.POST.get('random_state'),
-        }
-    elif selected_model == 'NMF':
-        selected_parameters = {
-            'num_topics': request.POST.get('num_topics'),
-            'chunksize': request.POST.get('chunksize'),
-            'passes': request.POST.get('passes'),
-            'kappa': request.POST.get('kappa'),
-            'minimum_probability': request.POST.get('minimum_probability'),
-            'w_max_iter': request.POST.get('w_max_iter'),
-            'w_stop_condition': request.POST.get('w_stop_condition'),
-            'h_max_iter': request.POST.get('h_max_iter'),
-            'h_stop_condition': request.POST.get('h_stop_condition'),
-            'eval_every': request.POST.get('eval_every'),
-            'normalize': request.POST.get('normalize'),
-            'random_state': request.POST.get('random_state'),
-        }
-    else :
-        selected_parameters = {
-            'num_topics': request.POST.get('num_topics'),
-            'chunksize': request.POST.get('chunksize'),
-            'decay': request.POST.get('decay'),
-            'gamma_threshold': request.POST.get('gamma_threshold'),
-            'eval_every': request.POST.get('eval_every'),
-            'iterations': request.POST.get('iterations'),
-            'random_state': request.POST.get('random_state'),
-            'dtype': request.POST.get('dtype'),
-            'alpha': request.POST.get('alpha'),
-        }
-    
+
+    # Define the mapping between form fields and model parameters
+    parameter_mapping = {
+        'LSA': ['num_topics', 'chunksize', 'decay', 'distributed', 'onepass', 'power_iters', 
+                'extra_samples', 'dtype', 'random_seed'],
+        'HDP': ['max_chunks', 'max_time', 'chunksize', 'kappa', 'tau', 'K', 'T', 'alpha', 
+                'gamma', 'eta', 'scale', 'var_converge', 'outputdir', 'random_state'],
+        'NMF': ['num_topics', 'chunksize', 'passes', 'kappa', 'minimum_probability', 
+                'w_max_iter', 'w_stop_condition', 'h_max_iter', 'h_stop_condition', 
+                'eval_every', 'normalize', 'random_state'],
+    }
+
+    selected_parameters = {}
+    if selected_model in parameter_mapping:
+        for parameter_name in parameter_mapping[selected_model]:
+            form_field = parameter_name if parameter_name != 'distributed' else 'distributed_checkbox'
+            selected_parameters[parameter_name] = request.POST.get(form_field)
+
     request.session['selected_parameters'] = {'selected_parameters': selected_parameters}
-    #save_to_mongodb(selected_parameters)
+    # save_to_mongodb(selected_parameters)
 
     # Render the template with the selected parameters
     return render(request, 'selected_parameters_model.html', {'selected_parameters': selected_parameters})
-
-def save_to_mongodb(selected_parameters, corpus_name, model_id, model_name):
-    # Use Djongo's database connection
-    client = MongoClient('mongodb+srv://andradacojocaru:andrada@cluster0.rpknlzf.mongodb.net/')  # Replace 'connection_string' with your actual connection string
-    db = client['topic_modelling']  # Replace 'db_name' with your actual database name
-    # Choose or create a collection in your database
-    collection = db['combined_topic_model']  # Replace 'selected_parameters_collection' with your actual collection name
-
-    existing_data = collection.find_one({
-        'corpus_data.corpus_name': corpus_name,
-        'selected_parameters': selected_parameters
-    })
-
-    if existing_data:
-        print("Data with the same corpus name, model name, and parameters already exists.")
-        return existing_data['model_id'], True, True
-    
-    # Check if data with the same corpus name exists
-    existing_corpus_data = collection.find_one({
-        'corpus_data.corpus_name': corpus_name
-    })
-    text_id = model_id
-
-    if existing_corpus_data:
-        print("Data with the same corpus name already exists, but parameters or model name may differ.")
-        text_id = existing_corpus_data['text_id']
-    
-    combined_data = {
-        'selected_parameters': selected_parameters,
-        'corpus_data': {
-            'corpus_name': corpus_name
-        },
-        'model_id': model_id,
-        'text_id': text_id,
-        'model_name': model_name 
-    }
-    # Insert the selected parameters into the collection
-    collection.insert_one(combined_data)
-    if existing_corpus_data:
-        return text_id, False, True
-    return model_id, False, False
 
 def add_corpus(request):
     
@@ -259,20 +170,6 @@ def process_corpus(request):
     
     return render(request, 'process_corpus.html', {'corpus_name': corpus_name, 'preprocessing_option': preprocessing_option, \
                                                    'selected_parameters' : selected_parameters})
-
-def preprocess_text(text):
-    # Remove non-alphabetic characters and convert to lowercase
-    text = re.sub(r'[^a-zA-Z]', ' ', text.lower())
-    
-    # Tokenize and stem each word, exclude short words, and remove stopwords
-    tokens = [
-        stemmer.stem(word) 
-        for word in word_tokenize(text) 
-        if word.isalpha() and len(word) > 2 and word not in stop_words
-    ]
-    
-    # Join the stemmed tokens back into a single string
-    return tokens
     
 def train_lsi_model(request):
     # Fetch the 20 Newsgroups dataset
