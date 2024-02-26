@@ -21,6 +21,10 @@
       width: auto; /* Maintain the aspect ratio */
       height: auto; /* Ensure the image doesn't exceed the specified max-height */
     }
+
+    .text-aligned {
+      text-align: center;
+    }
   </style>
 
   <title> Topic Modeling {% block title %}{% endblock %}</title>
@@ -33,6 +37,7 @@
   {% include 'partials/_navbar.html' %}
     <!-- Main Content -->
     {% block content %}
+    <div class="text-aligned">
     <head>
         <title>Train Model</title>
     </head>
@@ -48,6 +53,7 @@
         </form>
     {% endif %}
     {% endblock %}
+    </div>
   <!-- Footer -->
   {% include 'partials/_footer.html' %}
   

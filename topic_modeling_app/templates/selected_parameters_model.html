@@ -22,6 +22,20 @@
       width: auto; /* Maintain the aspect ratio */
       height: auto; /* Ensure the image doesn't exceed the specified max-height */
     }
+
+    .text-aligned {
+      text-align: center;
+    }
+
+    .container-ul {
+      text-align: center;
+    }
+
+    .container-ul ul {
+      list-style-type: none;
+      padding: 0;
+      margin: 0;
+    }
   </style>
 
   <title> Topic Modeling {% block title %}{% endblock %}</title>
@@ -34,21 +48,26 @@
   {% include 'partials/_navbar.html' %}
     <!-- Main Content -->
     {% block content %}
+    <div class="text-aligned">
     <head>
         <title>Selected Parameters</title>
     </head>
     <h1>Selected Parameters</h1>
     
-    <ul>
+    <ul class="container-ul">
         {% for key, value in selected_parameters.items %}
             <li><strong>{{ key }}:</strong> {{ value }}</li>
         {% endfor %}
 
         <!-- Add the button for "Add Corpus" -->
+        <div>
         <a href="{% url 'add_corpus'%}"><button>Add Corpus</button></a>
+        </div>
 
     </ul>
+    </div>
     {% endblock %}
+  </div>
   <!-- Footer -->
   {% include 'partials/_footer.html' %}
   
