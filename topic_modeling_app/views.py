@@ -41,9 +41,11 @@ nltk.download('punkt')
 stop_words = set(stopwords.words('english'))
 # Text preprocessing: stemming and removing spaces
 stemmer = PorterStemmer()
-corpus_path = "C:\\Licenta\\topic_modeling_project\\data\\corpus"
-dictionary_path = "C:\\Licenta\\topic_modeling_project\\data\\dictionary"
-models_path = "C:\\Licenta\\topic_modeling_project\\models"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+corpus_path = os.path.join(BASE_DIR, 'data', 'corpus')
+dictionary_path = os.path.join(BASE_DIR, 'data', 'dictionary')
+models_path = os.path.join(BASE_DIR, 'models')
 
 def home(request):
     return render(request, 'home.html')
@@ -319,6 +321,7 @@ def process_corpus(request):
 
     if data_exists:
         model_id = id
+        text_id = id
     if corpus_exists:
         text_id = id
     request.session['model_id'] = model_id
