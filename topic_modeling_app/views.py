@@ -3,7 +3,7 @@ from django.shortcuts import render, redirect
 import pandas as pd
 import multiprocessing
 from .tasks import train_model_in_child_process
-from .forms import UserSelectionForm, ModelChoiceForm, LdaModelForm, LsaModelForm, NmfModelForm, HdpModelForm
+from .forms import ModelChoiceForm, LdaModelForm, LsaModelForm, NmfModelForm, HdpModelForm
 from concurrent.futures import ProcessPoolExecutor
 import concurrent.futures
 from .models import PertinentWords
@@ -38,77 +38,12 @@ models_path = os.path.join(BASE_DIR, 'models')
 def home(request):
     return render(request, 'home.html')
 
-def select_options(request):
-    if request.method == 'POST':
-        form = UserSelectionForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect('result')
-    else:
-        form = UserSelectionForm()
-
-    return render(request, 'select_options.html', {'form': form})
-
-def bar_graph(request):
-    # Dummy data for demonstration
-    labels = ['word1', 'word2', 'word3', 'word4']
-    data = [10, 20, 15, 25]
-
-    context = {
-        'labels': labels,
-        'data': data,
-    }
-
-    return render(request, 'bar_graph.html', context)
-
-def topic_circles(request):
-    topics = [
-        {'name': 'Topic 1', 'details': 'Details for Topic 1'},
-        {'name': 'Topic 2', 'details': 'Details for Topic 2'},
-        {'name': 'Topic 3', 'details': 'Details for Topic 3'},
-        # Add more topics as needed
-    ]
-
-    context = {
-        'topics': topics,
-    }
-
-    return render(request, 'topic_circles.html', context)
-
 def get_saved_lsi_model(model_id):
     # Load the LSI model from the saved file
     lsi_model = models.LdaModel.load(os.path.join(models_path, model_id))
     return lsi_model
 
-def lda_visualization(request):
-    #Load a smaller dataset of tweets
-    # dset_url = 'https://archive.org/download/misc-dataset/dp-export-tokenized.csv'
-    # tweets_df = pd.read_csv(dset_url, nrows=100)  # Load only the first 100 rows
-    # tweets = tweets_df['Tweets'].values.tolist()
-    # tweets = [t.split(',') for t in tweets]
-
-    # # Example text preprocessing using spaCy for lemmatization
-    # nlp = spacy.load("en_core_web_sm")
-
-    # # Lemmatize each document
-    # lemmatized_tweets = []
-    # for tweet in tweets:
-    #     lemmatized_text = []
-    #     for doc in nlp.pipe(tweet, disable=["parser", "ner"]):
-    #         lemmatized_text.extend([token.lemma_ for token in doc if not token.is_stop])
-    #     lemmatized_tweets.append(lemmatized_text)
-
-    # # Create a dictionary and a corpus (bag-of-words representation)
-    # dictionary = corpora.Dictionary(lemmatized_tweets)
-    # corpus = [dictionary.doc2bow(text) for text in lemmatized_tweets]
-
-    # # Train an LDA model with fewer topics and passes
-    # lda_model = models.LdaModel(corpus=corpus, id2word=dictionary, num_topics=3)
-
-    # model_path = "models"
-    # os.makedirs(model_path, exist_ok=True)
-    # lda_model.save(os.path.join(model_path, 'lsi_model'))   
-
+def lda_visualization(request): 
     model_id = request.session.get('model_id', None)
     text_id = request.session.get('text_id', None)
     lda_model = get_saved_lsi_model(model_id)
@@ -134,37 +69,44 @@ def choose_model(request):
     return render(request, 'select_options.html', {'form': form})
 
 def model_detail(request, selected_model):
-    # Implement logic to display details for the selected model
+    # Dictionary mapping model names to their respective form classes
+    form_classes = {
+        'LDA': LdaModelForm,
+        'NMF': NmfModelForm,
+        'HDP': HdpModelForm,
+        'LSA': LsaModelForm
+    }
+
+    # Check if the request method is POST
     if request.method == 'POST':
-        if selected_model == 'LDA':
-            form = LdaModelForm(request.POST)
-        elif selected_model == 'NMF':
-            form = NmfModelForm(request.POST)
-        elif selected_model == 'HDP':
-            form = HdpModelForm(request.POST)
-        elif selected_model == 'LSA':
-            form = LsaModelForm(request.POST)
-        else:
-            # Handle other models or raise an exception for unsupported models
+        # Get the form class corresponding to the selected model
+        form_class = form_classes.get(selected_model)
+
+        # If the selected model is not found in the dictionary, raise an exception
+        if form_class is None:
             raise ValueError("Invalid selected model")
 
+        # Instantiate the form with POST data
+        form = form_class(request.POST)
+
+        # Check if the form is valid
         if form.is_valid():
             # Process the form data and redirect accordingly
             # ...
 
             return redirect(f'{selected_model}/')
     else:
-        if selected_model == 'LDA':
-            form = LdaModelForm()
-        elif selected_model == 'NMF':
-            form = NmfModelForm()
-        elif selected_model == 'HDP':
-            form = HdpModelForm()
-        elif selected_model == 'LSA':
-            form = LsaModelForm()
-        else:
-            # Handle other models or raise an exception for unsupported models
+        # Get the form class corresponding to the selected model
+        form_class = form_classes.get(selected_model)
+
+        # If the selected model is not found in the dictionary, raise an exception
+        if form_class is None:
             raise ValueError("Invalid selected model")
+
+        # Instantiate the form without POST data
+        form = form_class()
+
+    # Render the template with the form and selected model
     return render(request, 'models_detail.html', {'form': form, 'selected_model': selected_model})
 
 def selected_parameters(request, selected_model):
@@ -314,12 +256,7 @@ def process_corpus(request):
         text_id = id
     request.session['model_id'] = model_id
     request.session['text_id'] = text_id
-
-    # Assuming you have other parameters for the model
-    # Retrieve them from the database or any other source as needed
-    # ...
-
-    # Pass the data to the template for the new page
+    
     return render(request, 'process_corpus.html', {'corpus_name': corpus_name, 'preprocessing_option': preprocessing_option, \
                                                    'selected_parameters' : selected_parameters})
 
@@ -366,34 +303,7 @@ def train_lsi_model(request):
             for key, value in selected_parameters.get('selected_parameters', {}).items() 
             if value is not None and value.strip()
         }
-        #num_topics = selected_parameters.get('selected_parameters', {}).get('num_topics', None)
-        #dictionary_as_list = list(dictionary.items())
-
-        # Create a multiprocessing pool
-        #pool = multiprocessing.Pool(processes=1)
-
-        # Call the function asynchronously in a child process
-        #result = pool.apply_async(train_model_in_child_process, (corpus_bow, dictionary, params, model_id, models_path))
-
-        # Close the pool to release resources
-        #pool.close()
-        #pool.join()
-        #processid = os.fork()
-        #print(processid)
-
-        # processid > 0 represents the parent process
-        # if processid > 0 :
-        #     print("\nParent Process:")
-        #     print("Process ID:", os.getpid())
-        #     print("Child's process ID:", processid)
-
-        # # processid = 0 represents the created child process
-        # else :
-        #     print("\nChild Process:")
-        #     print("Process ID:", os.getpid())
-        #     print("Parent's process ID:", os.getppid())
-        # model = models.LdaModel(corpus_bow, id2word=dictionary, **params)
-        # model.save(os.path.join(models_path, model_id))
+        
         with concurrent.futures.ProcessPoolExecutor() as executor:
             # Submit the training task to the executor
             future = executor.submit(
