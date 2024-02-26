@@ -22,18 +22,6 @@ from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
 import re
 import os
-# import random
-# import string
-
-# def generate_random_string(length):
-#     # Define the characters to choose from (letters and digits)
-#     characters = string.ascii_letters + string.digits
-
-#     # Generate a random string of the specified length
-#     random_string = ''.join(random.choice(characters) for _ in range(length))
-
-#     return random_string
-
 
 # Download NLTK stopwords
 nltk.download('stopwords')
