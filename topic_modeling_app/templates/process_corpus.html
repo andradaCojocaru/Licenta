@@ -22,6 +22,10 @@
       width: auto; /* Maintain the aspect ratio */
       height: auto; /* Ensure the image doesn't exceed the specified max-height */
     }
+
+    .text-aligned {
+      text-align: center;
+    }
   </style>
 
   <title> Topic Modeling {% block title %}{% endblock %}</title>
@@ -34,6 +38,7 @@
   {% include 'partials/_navbar.html' %}
     <!-- Main Content -->
     {% block content %}
+    <div class="text-aligned">
     <head>
         <title>Processed Corpus</title>
     </head>
@@ -49,6 +54,7 @@
     {% endfor %}
 
     <a href="{% url 'train_button'%}"><button>train model</button></a>
+  </div>
     {% endblock %}
   <!-- Footer -->
   {% include 'partials/_footer.html' %}

@@ -22,6 +22,10 @@
       width: auto; /* Maintain the aspect ratio */
       height: auto; /* Ensure the image doesn't exceed the specified max-height */
     }
+
+    .text-aligned {
+      text-align: center;
+    }
   </style>
 
   <title> Topic Modeling {% block title %}{% endblock %}</title>
@@ -37,6 +41,7 @@
     <head>
         <title>Add Corpus</title>
     </head>
+    <div class="text-aligned">
     <h1>Add Corpus</h1>
     <!-- Your form for selecting the corpus and preprocessing options goes here -->
     <form method="post" action="{% url 'process_corpus'%}">
@@ -56,6 +61,7 @@
 
         <button type="submit">Submit</button>
     </form>
+  </div>
     {% endblock %}
   <!-- Footer -->
   {% include 'partials/_footer.html' %}

@@ -38,6 +38,23 @@
       margin-bottom: 80px;
     }
 
+    .text-aligned {
+      text-align: center;
+    }
+
+    .input-wrapper {
+        display: flex;
+        justify-content: center;
+    }
+
+    .button-wrapper {
+    text-align: center;
+    }
+
+    .my-button {
+        display: inline-block;
+    }
+
   </style>
 
   <title> Topic Modeling {% block title %}{% endblock %}</title>
@@ -50,13 +67,14 @@
   {% include 'partials/_navbar.html' %}
     <!-- Main Content -->
     {% block content %}
+    <div class="text-aligned">
     <h1>Details for {{ selected_model }}</h1>
     <!-- Add logic to display details based on the selected_model -->
     <form method="post" action="{% url 'selected_parameters' selected_model=selected_model %}">
       {% csrf_token %}
       
       {% for field in form %}
-          <div class="form-group">
+          <div class="form-group text-aligned">
               {{ field.label_tag }}
               <div class="input-wrapper">
                   {{ field }}
@@ -65,9 +83,12 @@
                   {% endif %}
               </div>
           </div>
+        </div>
       {% endfor %}
       
+      <div class="button-wrapper">
       <button class="my-button" type="submit">Submit</button>
+      </div>
   </form>
   
     {% endblock %}

@@ -22,6 +22,14 @@
       width: auto; /* Maintain the aspect ratio */
       height: auto; /* Ensure the image doesn't exceed the specified max-height */
     }
+
+    .form-group {
+      text-align: center;
+    }
+
+    .text-aligned {
+      text-align: center;
+    }
   </style>
 
   <title> Topic Modeling {% block title %}{% endblock %}</title>
@@ -34,12 +42,18 @@
   {% include 'partials/_navbar.html' %}
     <!-- Main Content -->
     {% block content %}
-    <form method="post" action="">
+    <div class="text-aligned">
+      <form method="post" action="" class="text-aligned">
         {% csrf_token %}
-        {{ form }}
-        <button type="submit">Submit</button>
+        <div class="form-group text-aligned" >
+            {{ form.as_p }}
+        </div>
+        <div class="button-wrapper text-aligned">
+            <button type="submit">Submit</button>
+        </div>
     </form>
     {% endblock %}
+  </div>
   <!-- Footer -->
   {% include 'partials/_footer.html' %}
   
