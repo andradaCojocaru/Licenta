@@ -1,11 +1,6 @@
 from django import forms
 from .models import UserSelection, LdaModel, LsaModel, HdpModel, NmfModel
 
-class UserSelectionForm(forms.ModelForm):
-    class Meta:
-        model = UserSelection
-        fields = ['preprocessing_option', 'encodation_option', 'model_option']
-
 class ModelChoiceForm(forms.Form):
     MODEL_CHOICES = [
         ('LSA', 'LSA'),
