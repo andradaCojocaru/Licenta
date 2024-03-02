@@ -5,7 +5,7 @@ import multiprocessing
 from .preprocessing import preprocess_text
 from .db import save_to_mongodb
 from .tasks import train_model_in_child_process
-from .forms import ModelChoiceForm, LdaModelForm, LsaModelForm, NmfModelForm, HdpModelForm
+from .forms import ModelChoiceForm, LdaModelForm, LsiModelForm, NmfModelForm, HdpModelForm, pLsaModelForm
 from concurrent.futures import ProcessPoolExecutor
 import concurrent.futures
 from .models import PertinentWords
@@ -65,7 +65,8 @@ def model_detail(request, selected_model):
         'LDA': LdaModelForm,
         'NMF': NmfModelForm,
         'HDP': HdpModelForm,
-        'LSA': LsaModelForm
+        'LSI': LsiModelForm,
+        'PLSA': pLsaModelForm,
     }
 
     # Check if the request method is POST
@@ -106,7 +107,8 @@ def selected_parameters(request, selected_model):
 
     # Define the mapping between form fields and model parameters
     parameter_mapping = {
-        'LSA': ['num_topics', 'chunksize', 'decay', 'distributed', 'onepass', 'power_iters', 
+        'pLSA': ['max_iters'],
+        'LSI': ['num_topics', 'chunksize', 'decay', 'distributed', 'onepass', 'power_iters', 
                 'extra_samples', 'dtype', 'random_seed'],
         'HDP': ['max_chunks', 'max_time', 'chunksize', 'kappa', 'tau', 'K', 'T', 'alpha', 
                 'gamma', 'eta', 'scale', 'var_converge', 'outputdir', 'random_state'],

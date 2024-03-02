@@ -1,20 +1,20 @@
 from django import forms
-from .models import UserSelection, LdaModel, LsaModel, HdpModel, NmfModel
+from .models import UserSelection, LdaModel, LsiModel, HdpModel, NmfModel, pLsaModel
 
 class ModelChoiceForm(forms.Form):
     MODEL_CHOICES = [
-        ('LSA', 'LSA'),
+        ('LSI', 'LSI'),
         ('LDA', 'LDA'),
-        #('PLSA', 'PLSA'),
+        ('PLSA', 'PLSA'),
         ('NMF', 'NMF'),
         ('HDP', 'HDP'),
     ]
 
     model_choice = forms.ChoiceField(choices=MODEL_CHOICES)
 
-class LsaModelForm(forms.ModelForm):
+class LsiModelForm(forms.ModelForm):
     class Meta:
-        model = LsaModel
+        model = LsiModel
         fields = '__all__'
         widgets = {
             'corpus': forms.TextInput(attrs={'placeholder': 'Optional', 'title': 'Stream of document vectors or a sparse matrix of shape (num_documents, num_terms)'}),
@@ -32,7 +32,20 @@ class LsaModelForm(forms.ModelForm):
 
 
     def __init__(self, *args, **kwargs):
-        super(LsaModelForm, self).__init__(*args, **kwargs)
+        super(LsiModelForm, self).__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            field.required = False
+
+class pLsaModelForm(forms.ModelForm):
+    class Meta:
+        model = pLsaModel
+        fields = '__all__'
+        widgets = {
+            'max_iters': forms.NumberInput(attrs={'placeholder': 'Optional', 'title': 'Maximum number of iterations to train h per each batch'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super(pLsaModelForm, self).__init__(*args, **kwargs)
         for field_name, field in self.fields.items():
             field.required = False
 

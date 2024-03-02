@@ -9,7 +9,7 @@ class PertinentWords(models.Model):
     word = models.CharField(max_length=50)
     frequency = models.IntegerField()
 
-class LsaModel(models.Model):
+class LsiModel(models.Model):
     num_topics = models.IntegerField()
     chunksize = models.IntegerField()
     decay = models.FloatField()
@@ -23,6 +23,12 @@ class LsaModel(models.Model):
     def __str__(self):
         return f"LSA Model - {self.num_topics} topics, {self.chunksize} chunksize \
             , {self.decay} decay"
+    
+class pLsaModel(models.Model):
+    max_iters = models.IntegerField()
+
+    def __str__(self):
+        return f"LSA Model - {self.max_iters} max_iters"
 
 class LdaModel(models.Model):
     num_topics = models.IntegerField()
@@ -47,15 +53,6 @@ class LdaModel(models.Model):
         return f"LDA Model - {self.num_topics} topics, {self.chunksize} chunksize \
             , {self.decay} decay"
 
-
-    
-class PlsaModel(models.Model):
-    num_topics = models.IntegerField()
-    passes = models.IntegerField()
-    # Other fields as needed
-
-    def __str__(self):
-        return f"PLSA Model - {self.num_topics} topics, {self.passes} passes"
     
 class NmfModel(models.Model):
     num_topics = models.IntegerField()
