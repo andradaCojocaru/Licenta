@@ -9,7 +9,8 @@ def save_to_mongodb(selected_parameters, corpus_name, model_id, model_name):
 
     existing_data = collection.find_one({
         'corpus_data.corpus_name': corpus_name,
-        'selected_parameters': selected_parameters
+        'selected_parameters': selected_parameters,
+        'model_name': model_name
     })
 
     if existing_data:

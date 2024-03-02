@@ -8,7 +8,6 @@ from .tasks import train_model_in_child_process
 from .forms import ModelChoiceForm, LdaModelForm, LsiModelForm, NmfModelForm, HdpModelForm, pLsaModelForm
 from concurrent.futures import ProcessPoolExecutor
 import concurrent.futures
-from .models import PertinentWords
 from gensim import corpora, models
 from gensim.utils import simple_preprocess
 import spacy
@@ -29,15 +28,28 @@ models_path = os.path.join(BASE_DIR, 'models')
 def home(request):
     return render(request, 'home.html')
 
-def get_saved_lsi_model(model_id):
-    # Load the LSI model from the saved file
-    lsi_model = models.LdaModel.load(os.path.join(models_path, model_id))
-    return lsi_model
+def get_saved_model(model_id, model_type):
+
+    # Load the appropriate model based on the model type
+    if model_type == "LDA":
+        model = models.LdaModel.load(os.path.join(models_path, model_id))
+    elif model_type == "LSI":
+        model = models.LsiModel.load(os.path.join(models_path, model_id))
+    elif model_type == "PLSA":
+        model = models.LdaModel.load(os.path.join(models_path, model_id))
+    elif model_type == "HDP":
+        model = models.HdpModel.load(os.path.join(models_path, model_id))
+    elif model_type == "NMF":
+        model = models.NmfModel.load(os.path.join(models_path, model_id))
+    else:
+        raise ValueError("Invalid model type")
+
+    return model
 
 def lda_visualization(request): 
     model_id = request.session.get('model_id', None)
     text_id = request.session.get('text_id', None)
-    lda_model = get_saved_lsi_model(model_id)
+    lda_model = get_saved_model(model_id, request.session.get('model_name', None))
 
     dictionary = corpora.Dictionary.load(os.path.join(dictionary_path, text_id))
     corpus = corpora.MmCorpus(os.path.join(corpus_path, text_id))
@@ -83,9 +95,6 @@ def model_detail(request, selected_model):
 
         # Check if the form is valid
         if form.is_valid():
-            # Process the form data and redirect accordingly
-            # ...
-
             return redirect(f'{selected_model}/')
     else:
         # Get the form class corresponding to the selected model
@@ -115,6 +124,9 @@ def selected_parameters(request, selected_model):
         'NMF': ['num_topics', 'chunksize', 'passes', 'kappa', 'minimum_probability', 
                 'w_max_iter', 'w_stop_condition', 'h_max_iter', 'h_stop_condition', 
                 'eval_every', 'normalize', 'random_state'],
+        'LDA': ['num_topics', 'chunksize', 'decay', 'offset', 'passes', 'alpha', 'eta',
+                'eval_every', 'iterations', 'gamma_threshold', 'minimum_probability', 
+                'random_state', 'minimum_phi_value', 'per_word_topics', 'update_every']
     }
 
     selected_parameters = {}
@@ -124,32 +136,20 @@ def selected_parameters(request, selected_model):
             selected_parameters[parameter_name] = request.POST.get(form_field)
 
     request.session['selected_parameters'] = {'selected_parameters': selected_parameters}
-    # save_to_mongodb(selected_parameters)
 
     # Render the template with the selected parameters
     return render(request, 'selected_parameters_model.html', {'selected_parameters': selected_parameters})
 
 def add_corpus(request):
-    
-    # Process the form submission and save data to MongoDB or perform other actions
-
-    # Assuming you have retrieved the values from the form
-    corpus_name = request.POST.get('corpus_name')
-    #preprocessing_option = request.POST.get('preprocessing_option')
-    
-
-    # You can pass these values back to the template
     return render(request, 'add_corpus.html')
     
-    # If it's a GET request, just render the form
-    
-
-
 def process_corpus(request):
     # Process the form submission and save data to MongoDB or perform other actions
     corpus_name = request.POST.get('corpus_name')
     preprocessing_option = request.POST.get('preprocessing_option')
     selected_parameters = request.session.get('selected_parameters', {}) 
+
+    # set custom model id and text id
     model_id = datetime.now().strftime("%Y%m%d%H%M%S%f")
     text_id = model_id
     model_name = request.session.get('model_name') 
@@ -173,7 +173,7 @@ def process_corpus(request):
     return render(request, 'process_corpus.html', {'corpus_name': corpus_name, 'preprocessing_option': preprocessing_option, \
                                                    'selected_parameters' : selected_parameters})
     
-def train_lsi_model(request):
+def train_model(request):
     # Fetch the 20 Newsgroups dataset
     newsgroups = fetch_20newsgroups(subset='all', remove=('headers', 'footers', 'quotes'))
 
@@ -207,13 +207,13 @@ def train_lsi_model(request):
             # Submit the training task to the executor
             future = executor.submit(
                 train_model_in_child_process,
-                corpus_bow, dictionary, params, model_id, models_path
+                corpus_bow, dictionary, params, model_id, models_path, request.session.get('model_name', None)
             )
 
             # Wait for the task to complete
             return future.result()
     else:
-        model = get_saved_lsi_model(model_id)
+        model = get_saved_model(model_id, request.session.get('model_name', None))
 
     return model
 
@@ -222,7 +222,7 @@ def train_button(request):
     # Check if the button is clicked (POST request)
     if request.method == 'POST' and 'train_button' in request.POST:
         # Train the LSI model
-        trained_model = train_lsi_model(request)
+        trained_model = train_model(request)
 
         # You can add further logic or pass information to the template if needed
         if trained_model == None:
