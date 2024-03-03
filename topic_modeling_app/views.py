@@ -8,6 +8,8 @@ from .tasks import train_model_in_child_process
 from .forms import ModelChoiceForm, LdaModelForm, LsiModelForm, NmfModelForm, HdpModelForm, pLsaModelForm
 from concurrent.futures import ProcessPoolExecutor
 import concurrent.futures
+from sklearn.datasets import fetch_openml
+from sklearn.datasets import fetch_rcv1
 from gensim import corpora, models
 from gensim.utils import simple_preprocess
 import spacy
@@ -18,9 +20,12 @@ from sklearn.datasets import fetch_20newsgroups
 from sklearn.feature_extraction.text import CountVectorizer
 
 import os
+from sklearn.datasets import fetch_openml
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+dset_url = 'https://archive.org/download/misc-dataset/dp-export-tokenized.csv'
+publicatii_path = os.path.join(BASE_DIR, 'data', 'datasets', 'publicatii.csv')
 corpus_path = os.path.join(BASE_DIR, 'data', 'corpus')
 dictionary_path = os.path.join(BASE_DIR, 'data', 'dictionary')
 models_path = os.path.join(BASE_DIR, 'models')
@@ -160,6 +165,7 @@ def process_corpus(request):
     id, corpus_exists, data_exists = save_to_mongodb(selected_parameters, corpus_name, model_id, model_name)
     request.session['id'] = id
     request.session['corpus_exists'] = corpus_exists
+    request.session['corpus_name'] = corpus_name
     request.session['data_exists'] = data_exists
 
     if data_exists:
@@ -175,10 +181,21 @@ def process_corpus(request):
     
 def train_model(request):
     # Fetch the 20 Newsgroups dataset
-    newsgroups = fetch_20newsgroups(subset='all', remove=('headers', 'footers', 'quotes'))
+    corpus_name = request.session.get('corpus_name')
+    if corpus_name == "20 News":
+        my_data = fetch_20newsgroups(subset='all', remove=('headers', 'footers', 'quotes'))
+    elif corpus_name == "Publicatii crescdi":
+        df = pd.read_csv(publicatii_path)
+        my_data = df['abstract_text'].astype(str)
+    elif corpus_name == "Tweets":
+        df = pd.read_csv(dset_url)
+        my_data = df['Tweets'].values.tolist()
+    else:
+        raise ValueError("Invalid corpus name")
 
     # Tokenize and preprocess the text
-    processed_text = [preprocess_text(text) for text in newsgroups.data]
+    
+    processed_text = [preprocess_text(text) for text in my_data]
     model_id = request.session.get('model_id')
     text_id = request.session.get('text_id')
     corpus_exists = request.session.get('corpus_exists')
@@ -221,10 +238,9 @@ def train_button(request):
     trained = False
     # Check if the button is clicked (POST request)
     if request.method == 'POST' and 'train_button' in request.POST:
-        # Train the LSI model
+        # Train the model
         trained_model = train_model(request)
 
-        # You can add further logic or pass information to the template if needed
         if trained_model == None:
             trained = False
         else:
